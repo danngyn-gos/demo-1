@@ -47,7 +47,7 @@ class TrainingMultiTask(BaseTask):
             self.evaluate_loss()
             
             # val scores
-            scores = self.evaluate_metrics(self.dev_dataloader)
+            scores = self.evaluate_metrics()
             anger_val_score = scores[self.score[0]]
             toxic_val_score = scores[self.scores[1]]
             val_score = 0.5 * anger_val_score + 0.5 * toxic_val_score

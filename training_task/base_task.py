@@ -89,7 +89,7 @@ class BaseTask(ABC):
             self.evaluate_loss()
             
             # val scores
-            scores = self.evaluate_metrics(self.dev_dataloader)
+            scores = self.evaluate_metrics()
             val_score = scores[self.score]
 
             best = False
