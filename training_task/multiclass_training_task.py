@@ -7,7 +7,7 @@ from torch.optim.lr_scheduler import LambdaLR
 from tqdm import tqdm
 from dataset.anger_toxic_dataset import AngerToxicDataset
 from evaluation import accuracy
-
+import os
 
 class TrainingMultiTask(BaseTask):
     def __init__(self, config, model):
@@ -21,6 +21,65 @@ class TrainingMultiTask(BaseTask):
         
         self.load_datasets()
         self.create_dataloaders()
+    
+    def start(self):
+        if os.path.isfile(os.path.join(self.checkpoint_path, "last_model.pth")):
+            checkpoint = self.load_checkpoint(
+                os.path.join(
+                    self.checkpoint_path,
+                    "last_model.pth"
+                    )
+                )
+            # use_rl = checkpoint["use_rl"]
+            best_val_score = checkpoint["best_val_score"]
+            patience = checkpoint["patience"]
+            self.running_epoch = checkpoint["epoch"] + 1
+            self.epoch = self.epoch - self.running_epoch
+            self.optimizer.load_state_dict(checkpoint['optimizer'])
+            self.scheduler.load_state_dict(checkpoint['scheduler'])
+
+        else:
+            best_val_score = .0
+            patience = 0
+        
+        for it in range(self.epoch):
+            self.train()
+            self.evaluate_loss()
+            
+            # val scores
+            scores = self.evaluate_metrics(self.dev_dataloader)
+            anger_val_score = scores[self.score[0]]
+            toxic_val_score = scores[self.scores[1]]
+            val_score = 0.5 * anger_val_score + 0.5 * toxic_val_score
+            
+            best = False
+            if val_score > best_val_score:
+                best_val_score = val_score
+                patience = 0
+                best = True
+            else:
+                patience += 1
+
+            exit_train = False
+
+            if patience == self.patience:
+                exit_train = True
+
+            self.save_checkpoint({
+                'best_val_score': best_val_score,
+                'patience': patience
+            })
+
+            if best:
+                copyfile(os.path.join(self.checkpoint_path, "last_model.pth"), 
+                         os.path.join(self.checkpoint_path, "best_model.pth"))
+
+            if exit_train:
+                break
+
+            self.running_epoch += 1
+        test_scores = self.evaluation(self.test_dataloader)
+        print(f"Evaluation on test set: {test_scores}")
         
     def lambda_lr(self, step):
         warm_up = self.warmup
@@ -44,7 +103,7 @@ class TrainingMultiTask(BaseTask):
                 anger_loss = self.anger_loss_fn(out['anger_output'], items['anger'])
                 toxic_loss = self.toxic_loss_fn(out['toxic_output'], items['toxic'])
                 
-                loss = anger_loss + toxic_loss
+                loss = (anger_loss + toxic_loss) / 2
                 
                 loss.backward()
 
@@ -68,7 +127,7 @@ class TrainingMultiTask(BaseTask):
                     
                 with torch.no_grad():
                     out = self.model(items['input_ids'],
-                                        items['attention_mask'])
+                                     items['attention_mask'])
                 
                 anger_loss = self.anger_loss_fn(out['anger_output'], items['anger'])
                 toxic_loss = self.toxic_loss_fn(out['toxic_output'], items['toxic'])
@@ -86,8 +145,8 @@ class TrainingMultiTask(BaseTask):
         anger_gens, toxic_gens = [], []
         
         self.model.eval()
-        with tqdm(desc='Epoch %d - Evaluation' % self.running_epoch, unit='it', total=len(self.test_dataloader)) as pbar:
-            for it, items in enumerate(self.test_dataloader):
+        with tqdm(desc='Epoch %d - Evaluation' % self.running_epoch, unit='it', total=len(self.dev_dataloader)) as pbar:
+            for it, items in enumerate(self.dev_dataloader):
                 for key, value in items.items():
                     if isinstance(value, torch.Tensor):
                         items[key] = value.to(self.device)
@@ -128,7 +187,7 @@ class TrainingMultiTask(BaseTask):
                                            collate_fn=self.train_dataset.collate_fn)
         
         self.dev_dataloader = DataLoader(self.dev_dataset,
-                                         batch_size=self.config.TRAINING.BATCH_SIZE,
+                                         batch_size=1,
                                          collate_fn=self.dev_dataset.collate_fn)
         
         self.test_dataloader = DataLoader(self.test_dataset,
