@@ -1,4 +1,4 @@
-from base_task import BaseTask
+from training_task.base_task import BaseTask
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
@@ -12,16 +12,18 @@ from evaluation import accuracy
 class TrainingMultiTask(BaseTask):
     def __init__(self, config, model):
         super().__init__(config, model)
-
-        self.scheduler = None
+        
         self.anger_loss_fn = nn.CrossEntropyLoss()
-        self.toxic_loss_fn = nn.CrossEntropyLoss(weight=config.TRAINING.TOXIC_WEIGHTED_LOSS)
-        self.scheduler = self.LambdaLR(self.optimizer, self.lambda_lr)
+        self.toxic_loss_fn = nn.CrossEntropyLoss(weight=torch.tensor(config.TRAINING.TOXIC_WEIGHTED_LOSS))
+        self.scheduler = LambdaLR(self.optimizer, self.lambda_lr)
+        
+        self.load_datasets()
+        self.create_dataloaders()
         
     def lambda_lr(self, step):
         warm_up = self.warmup
         step += 1
-        return (self.model.latent_dim_mlp ** -.5) * min(step ** -.5, step * warm_up ** -1.5)
+        return (self.model.latent_dim ** -.5) * min(step ** -.5, step * warm_up ** -1.5)
 
     def train(self):
         self.model.to(self.device)
@@ -123,12 +125,12 @@ class TrainingMultiTask(BaseTask):
     def create_dataloaders(self):
         self.train_dataloader = DataLoader(self.train_dataset,
                                            batch_size=self.config.TRAINING.BATCH_SIZE,
-                                           collate_fn=self.train_dataloader.collate_fn)
+                                           collate_fn=self.train_dataset.collate_fn)
         
         self.dev_dataloader = DataLoader(self.dev_dataset,
                                          batch_size=self.config.TRAINING.BATCH_SIZE,
-                                         collate_fn=self.dev_dataloader.collate_fn)
+                                         collate_fn=self.dev_dataset.collate_fn)
         
         self.test_dataloader = DataLoader(self.test_dataset,
                                           batch_size=self.config.TRAINING.BATCH_SIZE,
-                                          collate_fn=self.test_dataloader.collate_fn)
+                                          collate_fn=self.test_dataset.collate_fn)

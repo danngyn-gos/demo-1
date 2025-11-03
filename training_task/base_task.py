@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 class BaseTask(ABC):
     def __init__(self, config, model):
         super().__init__()
+        self.config = config
         self.patience = config.TRAINING.PATIENCE
         self.device = config.TRAINING.DEVICE
         self.score = config.TRAINING.SCORE
@@ -24,8 +25,6 @@ class BaseTask(ABC):
         self.epoch = config.TRAINING['EPOCH']
         self.running_epoch = 0
         
-        self.load_datasets(config)
-        self.create_dataloaders(config)
         
     @abstractmethod
     def train(self):
@@ -40,11 +39,11 @@ class BaseTask(ABC):
         raise NotImplementedError
     
     @abstractmethod
-    def load_datasets(self, config):
+    def load_datasets(self):
         raise NotImplementedError
     
     @abstractmethod
-    def create_dataloaders(self, config):
+    def create_dataloaders(self):
         raise NotImplementedError
     
     def save_checkpoint(self, dict_for_updating):
