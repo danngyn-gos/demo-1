@@ -85,8 +85,8 @@ class BaseTask(ABC):
             patience = 0
         
         for it in range(self.epoch):
-            self.train(self.train_dataloader)
-            self.evaluate_loss(self.dev_dataloader)
+            self.train()
+            self.evaluate_loss()
             
             # val scores
             scores = self.evaluate_metrics(self.dev_dataloader)

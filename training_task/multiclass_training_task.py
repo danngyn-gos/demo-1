@@ -14,7 +14,9 @@ class TrainingMultiTask(BaseTask):
         super().__init__(config, model)
         
         self.anger_loss_fn = nn.CrossEntropyLoss()
-        self.toxic_loss_fn = nn.CrossEntropyLoss(weight=torch.tensor(config.TRAINING.TOXIC_WEIGHTED_LOSS))
+        self.toxic_loss_fn = nn.CrossEntropyLoss(
+            weight=torch.tensor(config.TRAINING.TOXIC_WEIGHTED_LOSS).to(self.device)
+            )
         self.scheduler = LambdaLR(self.optimizer, self.lambda_lr)
         
         self.load_datasets()
@@ -64,14 +66,14 @@ class TrainingMultiTask(BaseTask):
                     if isinstance(value, torch.Tensor):
                         items[key] = value.to(self.device)
                     
-                    with torch.no_grad():
-                        out = self.model(items['input_ids'],
-                                         items['attention_mask'])
+                with torch.no_grad():
+                    out = self.model(items['input_ids'],
+                                        items['attention_mask'])
                 
                 anger_loss = self.anger_loss_fn(out['anger_output'], items['anger'])
                 toxic_loss = self.toxic_loss_fn(out['toxic_output'], items['toxic'])
                 
-                loss = anger_loss + toxic_loss
+                loss = (anger_loss + toxic_loss) / 2
 
                 this_loss = loss.item()
                 running_loss += this_loss
@@ -130,5 +132,5 @@ class TrainingMultiTask(BaseTask):
                                          collate_fn=self.dev_dataset.collate_fn)
         
         self.test_dataloader = DataLoader(self.test_dataset,
-                                          batch_size=self.config.TRAINING.BATCH_SIZE,
+                                          batch_size=1,
                                           collate_fn=self.test_dataset.collate_fn)
