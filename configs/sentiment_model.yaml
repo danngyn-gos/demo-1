@@ -1,0 +1,32 @@
+TASK: TRAIN_MODEL
+
+TRAINING:
+    LEARNING_RATE: 0.0001
+    EPOCH: 100
+    DEVICE: cuda
+    SCORE: accuracy
+    BATCH_SIZE: 32
+    WARMUP: 200
+    PATIENCE: 5
+    CHECKPOINT_PATH: saved_models
+    TOXIC_WEIGHTED_LOSS: [1.3597, 3.780]
+    DATA_PATH:
+        TRAIN: data/train.csv
+        DEV:   data/dev.csv
+        TEST:  data/test.csv
+
+MODEL:
+    IN_FEATURE: 768
+    DIM: 768
+    EMO_CLASSES: 2
+    TOXICITY_CLASSES: 2
+    DROPOUT: 0.2
+    FREEZE_BACKBONE: True
+
+DATA:
+    NUM_ITEMS: 25402
+    IMAGE_FOLDER: data/images
+    DATA_PATH:
+        TRAIN: data/train.csv
+        DEV:   data/dev.csv
+        TEST:  data/test.csv
