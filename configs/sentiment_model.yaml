@@ -1,9 +1,11 @@
+
+
 TASK: TRAIN_MODEL
 
 TRAINING:
     LEARNING_RATE: 0.0001
     EPOCH: 100
-    DEVICE: cuda
+    DEVICE: cpu
     SCORE: accuracy
     BATCH_SIZE: 32
     WARMUP: 200
@@ -11,9 +13,9 @@ TRAINING:
     CHECKPOINT_PATH: saved_models
     TOXIC_WEIGHTED_LOSS: [1.3597, 3.780]
     DATA_PATH:
-        TRAIN: data/train.csv
-        DEV:   data/dev.csv
-        TEST:  data/test.csv
+        TRAIN: /content/drive/MyDrive/demo1/training_data/train.csv
+        DEV:   /content/drive/MyDrive/demo1/training_data/dev.csv
+        TEST:  /content/drive/MyDrive/demo1/training_data/test.csv
 
 MODEL:
     IN_FEATURE: 768
@@ -21,12 +23,12 @@ MODEL:
     ANGER: 2
     TOXICITY: 2
     DROPOUT: 0.2
-    FREEZE_BACKBONE: True
+    FREEZE_BACKBONE: False
 
 DATA:
     NUM_ITEMS: 25402
     IMAGE_FOLDER: data/images
     DATA_PATH:
-        TRAIN: data/train.csv
-        DEV:   data/dev.csv
-        TEST:  data/test.csv
+        TRAIN: /content/drive/MyDrive/demo1/training_data/train.csv
+        DEV:   /content/drive/MyDrive/demo1/training_data/dev.csv
+        TEST:  /content/drive/MyDrive/demo1/training_data/test.csv

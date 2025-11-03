@@ -68,8 +68,6 @@ class TrainingMultiTask(BaseTask):
                         out = self.model(items['input_ids'],
                                          items['attention_mask'])
                 
-                self.optimizer.zero_grad()
-                
                 anger_loss = self.anger_loss_fn(out['anger_output'], items['anger'])
                 toxic_loss = self.toxic_loss_fn(out['toxic_output'], items['toxic'])
                 
