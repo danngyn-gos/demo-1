@@ -56,6 +56,6 @@ class SentimentModel(nn.Module):
         toxic_output = self.toxicity_head(pooled_output)
 
         return {
-            'angry_output': emo_output,
+            'anger_output': emo_output,
             'toxic_output': toxic_output
         }

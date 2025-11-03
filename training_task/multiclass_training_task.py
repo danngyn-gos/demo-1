@@ -81,7 +81,7 @@ class TrainingMultiTask(BaseTask):
                 pbar.set_postfix(loss=running_loss / (it + 1))
                 pbar.update()
                 
-    def evaluation(self):
+    def evaluate_metrics(self):
         anger_gts, toxic_gts = [], []
         anger_gens, toxic_gens = [], []
         
@@ -96,7 +96,7 @@ class TrainingMultiTask(BaseTask):
                                       items['attention_mask'])
                 
                 anger_gts.append(items['anger'])
-                anger_gens.append(outs['angry_output'])
+                anger_gens.append(outs['anger_output'])
 
                 toxic_gts.append(items['toxic'])
                 toxic_gens.append(outs['toxic_output'])

@@ -23,9 +23,8 @@ class BaseTask(ABC):
                                     betas=(0.9, 0.98))
 
         self.epoch = config.TRAINING['EPOCH']
-        self.running_epoch = 0
-        
-        
+        self.running_epoch = 0    
+
     @abstractmethod
     def train(self):
         raise NotImplementedError 
@@ -35,7 +34,7 @@ class BaseTask(ABC):
         raise NotImplementedError
     
     @abstractmethod
-    def evaluation(self):
+    def evaluate_metrics(self):
         raise NotImplementedError
     
     @abstractmethod
@@ -90,7 +89,7 @@ class BaseTask(ABC):
             self.evaluate_loss(self.dev_dataloader)
             
             # val scores
-            scores = self.evaluation(self.dev_dataloader)
+            scores = self.evaluate_metrics(self.dev_dataloader)
             val_score = scores[self.score]
 
             best = False
