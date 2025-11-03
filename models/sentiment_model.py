@@ -12,13 +12,13 @@ class SentimentModel(nn.Module):
         self.bert_config = AutoConfig.from_pretrained("tabularisai/multilingual-sentiment-analysis")
         self.config = config
         self.distilbert = DistilBertModel(self.bert_config)
-        self.pre_classifier = nn.Linear(config.DIM, config.DIM)
         self.latent_dim = config.DIM
+        self.pre_classifier = nn.Linear(self.latent_dim, config.DIM)
+        
         # self.sent_classifier = nn.Linear(config.DIM, config.SENT_CLASSES)
+        self.emo_classifier = nn.Linear(self.latent_dim, config.EMO_CLASSES)
 
-        self.emo_classifier = nn.Linear(config.DIM, config.EMO_CLASSES)
-
-        self.toxicity_head = nn.Linear(config.DIM, config.TOXICITY_CLASSES)
+        self.toxicity_head = nn.Linear(self.latent_dim, config.TOXICITY_CLASSES)
         self.dropout = nn.Dropout(config.DROPOUT)
         
         if self.config.FREEZE_BACKBONE:
