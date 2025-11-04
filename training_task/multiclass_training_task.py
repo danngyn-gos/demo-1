@@ -9,6 +9,7 @@ from dataset.anger_toxic_dataset import AngerToxicDataset
 from evaluation import accuracy
 import os
 from shutil import copyfile
+from transformers import get_linear_schedule_with_warmup
 
 
 class TrainingMultiTask(BaseTask):
@@ -19,11 +20,17 @@ class TrainingMultiTask(BaseTask):
         self.toxic_loss_fn = nn.CrossEntropyLoss(
             weight=torch.tensor(config.TRAINING.TOXIC_WEIGHTED_LOSS).to(self.device)
             )
-        self.scheduler = LambdaLR(self.optimizer, self.lambda_lr)
+        # self.scheduler = LambdaLR(self.optimizer, self.lambda_lr)
         
         self.load_datasets()
         self.create_dataloaders()
-    
+
+        self.scheduler = get_linear_schedule_with_warmup(
+            self.optimizer,
+            num_warmup_steps=self.warmup,
+            num_training_steps=len(self.train_dataloader) * self.epoch
+        )
+        
     def get_task_weights(self, losses, alpha=0.12):
         """Compute task weights inversely proportional to gradient norms"""
         grad_norms = []
@@ -32,8 +39,8 @@ class TrainingMultiTask(BaseTask):
             # Compute gradients
             shared_params = list(self.model.distilbert.parameters()) + \
                             list(self.model.pre_classifier.parameters())
-            grads = torch.autograd.grad(loss, shared_params, 
-                                    retain_graph=True)
+            grads = torch.autograd.grad(loss, shared_params,
+                                        retain_graph=True)
             grad_norm = torch.sqrt(sum((g**2).sum() for g in grads))
             grad_norms.append(grad_norm)
         
@@ -172,13 +179,13 @@ class TrainingMultiTask(BaseTask):
                 pbar.set_postfix(loss=running_loss / (it + 1))
                 pbar.update()
                 
-    def evaluate_metrics(self):
+    def evaluate_metrics(self, dataloader):
         anger_gts, toxic_gts = [], []
         anger_gens, toxic_gens = [], []
         
         self.model.eval()
-        with tqdm(desc='Epoch %d - Evaluation' % self.running_epoch, unit='it', total=len(self.dev_dataloader)) as pbar:
-            for it, items in enumerate(self.dev_dataloader):
+        with tqdm(desc='Epoch %d - Evaluation' % self.running_epoch, unit='it', total=len(dataloader)) as pbar:
+            for it, items in enumerate(dataloader):
                 for key, value in items.items():
                     if isinstance(value, torch.Tensor):
                         items[key] = value.to(self.device)

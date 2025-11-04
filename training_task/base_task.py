@@ -4,6 +4,7 @@ from shutil import copyfile
 from torch.optim.lr_scheduler import LambdaLR
 import os
 from abc import ABC, abstractmethod
+import numpy as np
 
 
 class BaseTask(ABC):
@@ -62,6 +63,8 @@ class BaseTask(ABC):
         if not os.path.exists(fname):
             return None
         checkpoint = torch.load(fname)
+
+        self.model.load_state_dict(checkpoint['state_dict'], strict=False)
         return checkpoint
 
     def start(self):
@@ -89,7 +92,7 @@ class BaseTask(ABC):
             self.evaluate_loss()
             
             # val scores
-            scores = self.evaluate_metrics()
+            scores = self.evaluate_metrics(self.dev_dataloader)
             val_score = scores[self.score]
 
             best = False
