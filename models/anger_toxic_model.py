@@ -4,7 +4,7 @@ from transformers import DistilBertModel, AutoConfig
 from typing import Optional
 
 
-class SentimentModel(nn.Module):
+class AngerToxicClasModel(nn.Module):
     def __init__(self,
                  config,
                  ):
@@ -16,9 +16,9 @@ class SentimentModel(nn.Module):
         self.pre_classifier = nn.Linear(self.latent_dim, config.DIM)
         
         # self.sent_classifier = nn.Linear(config.DIM, config.SENT_CLASSES)
-        self.empathy_head = nn.Linear(self.latent_dim, config.EMPATHY)
+        self.anger_head = nn.Linear(self.latent_dim, config.ANGER)
 
-        self.sentiment_head = nn.Linear(self.latent_dim, config.SENTIMENT)
+        self.toxicity_head = nn.Linear(self.latent_dim, config.TOXICITY)
         self.dropout = nn.Dropout(config.DROPOUT)
         
         if self.config.FREEZE_BACKBONE:
@@ -50,12 +50,12 @@ class SentimentModel(nn.Module):
         # sent_output = self.sent_classifier(pooled_output)
 
         # Emotion head
-        empathy_output = self.empathy_head(pooled_output)
+        emo_output = self.anger_head(pooled_output)
 
         # Toxicity head
-        sentiment_output = self.sentiment_head_head(pooled_output)
+        toxic_output = self.toxicity_head(pooled_output)
 
         return {
-            'empathy_output': empathy_output,
-            'sentiment_output': sentiment_output
+            'anger_output': emo_output,
+            'toxic_output': toxic_output
         }
