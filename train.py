@@ -1,5 +1,5 @@
-from training_task.multiclass_training_task import TrainingMultiTask
-from models.sentiment_model import SentimentModel
+from tasks.training_multi_class_task import TrainingMultiTask
+from models.anger_toxic_model import SentimentModel
 from configs.utils import get_config
 import argparse
 
