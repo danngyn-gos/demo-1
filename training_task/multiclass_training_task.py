@@ -30,7 +30,9 @@ class TrainingMultiTask(BaseTask):
         
         for loss in losses:
             # Compute gradients
-            grads = torch.autograd.grad(loss, self.model.distilbert.parameters(), 
+            shared_params = list(self.model.distilbert.parameters()) + \
+                            list(self.model.pre_classifier.parameters())
+            grads = torch.autograd.grad(loss, shared_params, 
                                     retain_graph=True)
             grad_norm = torch.sqrt(sum((g**2).sum() for g in grads))
             grad_norms.append(grad_norm)
@@ -143,7 +145,7 @@ class TrainingMultiTask(BaseTask):
     def evaluate_loss(self):
         self.model.eval()
         running_loss = 0
-        with tqdm(desc='ValidationEpoch %d - Validation' % self.running_epoch, unit='it', total=len(self.dev_dataloader)) as pbar:
+        with tqdm(desc='Epoch %d - Validation' % self.running_epoch, unit='it', total=len(self.dev_dataloader)) as pbar:
             for it, items in enumerate(self.dev_dataloader):
                 for key, value in items.items():
                     if isinstance(value, torch.Tensor):
@@ -156,11 +158,13 @@ class TrainingMultiTask(BaseTask):
                 anger_loss = self.anger_loss_fn(out['anger_output'], items['anger'])
                 toxic_loss = self.toxic_loss_fn(out['toxic_output'], items['toxic'])
                 
-                losses = [anger_loss, toxic_loss]
-                weights = self.get_task_weights(
-                    losses=losses
-                    )
-                loss = sum(w * l for w, l in zip(weights, losses))
+                # losses = [anger_loss, toxic_loss]
+                # weights = self.get_task_weights(
+                #     losses=losses
+                #     )
+                # loss = sum(w * l for w, l in zip(weights, losses))
+                
+                loss = (anger_loss + toxic_loss) / 2
 
                 this_loss = loss.item()
                 running_loss += this_loss
