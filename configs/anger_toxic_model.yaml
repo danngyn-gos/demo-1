@@ -1,15 +1,17 @@
 
 
-TASK: TRAIN_SENTIMENT_MODEL
+TASK: TRAIN_ANGER_TOXIC_MODEL
 
 TRAINING:
     LEARNING_RATE: 0.0001
     EPOCH: 20
     DEVICE: cuda
+    SCORE: ['anger_accuracy', 'toxic_accuracy']
     BATCH_SIZE: 32
     WARMUP: 1000
     PATIENCE: 5
     CHECKPOINT_PATH: saved_models
+    TOXIC_WEIGHTED_LOSS: [0.68, 1.89]
     DATA_PATH:
         TRAIN: /content/drive/MyDrive/demo1/training_data/train.csv
         DEV:   /content/drive/MyDrive/demo1/training_data/dev.csv
@@ -19,8 +21,8 @@ MODEL:
     PRETRAINED: tabularisai/multilingual-sentiment-analysis
     IN_FEATURE: 768
     DIM: 768
-    EMPATHY: 1
-    SENTIMENT: 1
+    ANGER: 2
+    TOXICITY: 2
     DROPOUT: 0.2
     FREEZE_BACKBONE: False
 
