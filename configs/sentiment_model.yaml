@@ -11,7 +11,7 @@ TRAINING:
     WARMUP: 1000
     PATIENCE: 5
     CHECKPOINT_PATH: saved_models
-    TOXIC_WEIGHTED_LOSS: [1.3597, 3.780]
+    TOXIC_WEIGHTED_LOSS: [0.68, 1.89]
     DATA_PATH:
         TRAIN: /content/drive/MyDrive/demo1/training_data/train.csv
         DEV:   /content/drive/MyDrive/demo1/training_data/dev.csv

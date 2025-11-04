@@ -8,6 +8,8 @@ from tqdm import tqdm
 from dataset.anger_toxic_dataset import AngerToxicDataset
 from evaluation import accuracy
 import os
+from shutil import copyfile
+
 
 class TrainingMultiTask(BaseTask):
     def __init__(self, config, model):
@@ -21,6 +23,24 @@ class TrainingMultiTask(BaseTask):
         
         self.load_datasets()
         self.create_dataloaders()
+    
+    def get_task_weights(self, losses, alpha=0.12):
+        """Compute task weights inversely proportional to gradient norms"""
+        grad_norms = []
+        
+        for loss in losses:
+            # Compute gradients
+            grads = torch.autograd.grad(loss, self.model.distilbert.parameters(), 
+                                    retain_graph=True)
+            grad_norm = torch.sqrt(sum((g**2).sum() for g in grads))
+            grad_norms.append(grad_norm)
+        
+        # Normalize inversely - tasks with larger gradients get smaller weights
+        grad_norms = torch.stack(grad_norms)
+        weights = grad_norms.mean() / (grad_norms + 1e-8)
+        weights = weights / weights.sum() * len(losses)  # normalize
+        
+        return weights.detach()
     
     def start(self):
         if os.path.isfile(os.path.join(self.checkpoint_path, "last_model.pth")):
@@ -78,7 +98,7 @@ class TrainingMultiTask(BaseTask):
                 break
 
             self.running_epoch += 1
-        test_scores = self.evaluation(self.test_dataloader)
+        test_scores = self.evaluate_metrics(self.test_dataloader)
         print(f"Evaluation on test set: {test_scores}")
         
     def lambda_lr(self, step):
@@ -102,8 +122,13 @@ class TrainingMultiTask(BaseTask):
                 
                 anger_loss = self.anger_loss_fn(out['anger_output'], items['anger'])
                 toxic_loss = self.toxic_loss_fn(out['toxic_output'], items['toxic'])
-                
-                loss = (anger_loss + toxic_loss) / 2
+                losses = [anger_loss, toxic_loss]
+                weights = self.get_task_weights(
+                    losses=losses
+                    )
+                loss = sum(w * l for w, l in zip(weights, losses))
+            
+                # loss = (anger_loss + toxic_loss) / 2
                 
                 loss.backward()
 
@@ -114,7 +139,6 @@ class TrainingMultiTask(BaseTask):
                 pbar.set_postfix(loss=running_loss / (it + 1))
                 pbar.update()
         self.scheduler.step()
-
 
     def evaluate_loss(self):
         self.model.eval()
@@ -132,7 +156,11 @@ class TrainingMultiTask(BaseTask):
                 anger_loss = self.anger_loss_fn(out['anger_output'], items['anger'])
                 toxic_loss = self.toxic_loss_fn(out['toxic_output'], items['toxic'])
                 
-                loss = (anger_loss + toxic_loss) / 2
+                losses = [anger_loss, toxic_loss]
+                weights = self.get_task_weights(
+                    losses=losses
+                    )
+                loss = sum(w * l for w, l in zip(weights, losses))
 
                 this_loss = loss.item()
                 running_loss += this_loss
@@ -190,6 +218,6 @@ class TrainingMultiTask(BaseTask):
                                          batch_size=1,
                                          collate_fn=self.dev_dataset.collate_fn)
         
-        self.test_dataloader = DataLoader(self.test_dataset,
+        self.test_dataloader = DataLoader(self.dev_dataset,
                                           batch_size=1,
-                                          collate_fn=self.test_dataset.collate_fn)
+                                          collate_fn=self.dev_dataset.collate_fn)
