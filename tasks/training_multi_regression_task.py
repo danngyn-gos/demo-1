@@ -115,7 +115,7 @@ class TrainingMultiRegressTask(BaseTask):
         self.model.train()
 
         running_loss = 0
-        with tqdm(desc='Epoch %d - Training with Cross Entropy Loss' % self.running_epoch, unit='it', total=len(self.train_dataloader)) as pbar:
+        with tqdm(desc='Epoch %d - Training with L1 Loss' % self.running_epoch, unit='it', total=len(self.train_dataloader)) as pbar:
             for it, items in enumerate(self.train_dataloader):
                 for key, value in items.items():
                     if isinstance(value, torch.Tensor):

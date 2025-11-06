@@ -53,7 +53,7 @@ class SentimentModel(nn.Module):
         empathy_output = self.empathy_head(pooled_output)
 
         # Toxicity head
-        sentiment_output = self.sentiment_head_head(pooled_output)
+        sentiment_output = self.sentiment_head(pooled_output)
 
         return {
             'empathy_output': empathy_output,

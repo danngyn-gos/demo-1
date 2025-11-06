@@ -209,7 +209,7 @@ class TrainingMultiClassTask(BaseTask):
             'anger_accuracy': anger_acc,
             'toxic_accuracy': toxic_acc
         }
-``
+
         print(scores)
         return scores
     
