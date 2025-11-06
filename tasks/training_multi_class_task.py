@@ -214,9 +214,12 @@ class TrainingMultiClassTask(BaseTask):
         return scores
     
     def load_datasets(self):
-        self.train_dataset = AngerToxicDataset(self.config.TRAINING.DATA_PATH.TRAIN)
-        self.dev_dataset = AngerToxicDataset(self.config.TRAINING.DATA_PATH.DEV)
-        self.test_dataset = AngerToxicDataset(self.config.TRAINING.DATA_PATH.TEST)
+        self.train_dataset = AngerToxicDataset(self.config.DATA,
+                                              self.config.TRAINING.DATA_PATH.TRAIN)
+        self.dev_dataset = AngerToxicDataset(self.config.DATA,
+                                              self.config.TRAINING.DATA_PATH.TRAIN)
+        self.test_dataset = AngerToxicDataset(self.config.DATA,
+                                              self.config.TRAINING.DATA_PATH.TRAIN)
     
     def create_dataloaders(self):
         self.train_dataloader = DataLoader(self.train_dataset,

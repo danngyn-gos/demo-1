@@ -3,7 +3,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from dataset import AngerToxicDataset
+from dataset import SentimentDataset
 from evaluation import mean_squared_error
 import os
 from shutil import copyfile
@@ -210,9 +210,12 @@ class TrainingMultiRegressTask(BaseTask):
         return scores
     
     def load_datasets(self):
-        self.train_dataset = AngerToxicDataset(self.config.TRAINING.DATA_PATH.TRAIN)
-        self.dev_dataset = AngerToxicDataset(self.config.TRAINING.DATA_PATH.DEV)
-        self.test_dataset = AngerToxicDataset(self.config.TRAINING.DATA_PATH.TEST)
+        self.train_dataset = SentimentDataset(self.config.DATA,
+                                              self.config.TRAINING.DATA_PATH.TRAIN)
+        self.dev_dataset = SentimentDataset(self.config.DATA,
+                                            self.config.TRAINING.DATA_PATH.DEV)
+        self.test_dataset = SentimentDataset(self.config.DATA,
+                                             self.config.TRAINING.DATA_PATH.TEST)
     
     def create_dataloaders(self):
         self.train_dataloader = DataLoader(self.train_dataset,
