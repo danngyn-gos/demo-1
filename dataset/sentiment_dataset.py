@@ -27,8 +27,8 @@ class SentimentDataset(Dataset):
         for i in range(self.df.shape[0]):
             sample = self.df.iloc[i]
             self.text.append(sample['text'])
-            self.anger.append(sample['empathy'])
-            self.toxic.append(sample['sentiment'])
+            self.empathy.append(sample['empathy'])
+            self.sentiment.append(sample['sentiment'])
 
     def collate_fn(self, batch):
         text = [item['text'] for item in batch]
