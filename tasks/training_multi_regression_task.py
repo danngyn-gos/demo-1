@@ -9,6 +9,7 @@ import os
 from shutil import copyfile
 from transformers import get_linear_schedule_with_warmup
 from utils.logging_utils import setup_logger
+import numpy as np
 
 logger = setup_logger('logs/SentimentModel')
 
@@ -28,6 +29,10 @@ class TrainingMultiRegressTask(BaseTask):
             num_warmup_steps=self.warmup,
             num_training_steps=len(self.train_dataloader) * self.epoch
         )
+
+        logger.info("%s start", config.TASK)
+        logger.info("Learning Rate: %s", config.TRAINING.LEARNING_RATE)
+        logger.info("Warm up: %s", self.warmup)
 
     def get_task_weights(self, losses, alpha=0.12):
         """Compute task weights inversely proportional to gradient norms"""
@@ -66,11 +71,11 @@ class TrainingMultiRegressTask(BaseTask):
             self.scheduler.load_state_dict(checkpoint['scheduler'])
 
         else:
-            best_val_score = .0
+            best_val_score = np.inf
             patience = 0
         
         for it in range(self.epoch):
-            logger.info('Epoch %s', self.epoch)
+            logger.info('Epoch %s', self.running_epoch)
             self.train()
             self.evaluate_loss()
             
@@ -82,7 +87,7 @@ class TrainingMultiRegressTask(BaseTask):
             val_score = 0.5 * sentiment_val_score + 0.5 * empathy_val_score
             
             best = False
-            if val_score > best_val_score:
+            if val_score < best_val_score:
                 best_val_score = val_score
                 patience = 0
                 best = True

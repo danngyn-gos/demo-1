@@ -9,7 +9,7 @@ import os
 from shutil import copyfile
 from transformers import get_linear_schedule_with_warmup
 from utils.logging_utils import setup_logger
-logger = setup_logger()
+logger = setup_logger('logs/multiclass')
 
 
 class TrainingMultiClassTask(BaseTask):
@@ -30,6 +30,10 @@ class TrainingMultiClassTask(BaseTask):
             num_warmup_steps=self.warmup,
             num_training_steps=len(self.train_dataloader) * self.epoch
         )
+        
+        logger.info("%s start", config.TASK)
+        logger.info("Learning Rate: %s", config.TRAINING.LEARNING_RATE)
+        logger.info("Warm up: %s", self.warmup)
         
     def get_task_weights(self, losses, alpha=0.12):
         """Compute task weights inversely proportional to gradient norms"""
@@ -149,7 +153,7 @@ class TrainingMultiClassTask(BaseTask):
 
                 pbar.set_postfix(loss=running_loss / (it + 1))
                 pbar.update()
-        logger.info("Training Loss: %s", running_loss)
+        logger.info("Training Loss: %s", running_loss / len(self.train_dataloader))
         self.scheduler.step()
 
     def evaluate_loss(self):
@@ -181,7 +185,7 @@ class TrainingMultiClassTask(BaseTask):
 
                 pbar.set_postfix(loss=running_loss / (it + 1))
                 pbar.update()
-        logger.info("Dev Loss: %s", running_loss)
+        logger.info("Dev Loss: %s", running_loss / len(self.dev_dataloader))
                 
     def evaluate_metrics(self, dataloader):
         anger_gts, toxic_gts = [], []

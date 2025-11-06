@@ -51,7 +51,7 @@ def setup_logger(output=None,
     logger.propagate = False
     
     if os.path.isdir('logs'):
-        os.mkdir('logs')
+        os.mkdir('logs', exist_ok=True)
 
     FORMAT = "[%(asctime)s] %(levelname)s: %(message)s"
     plain_formatter = logging.Formatter(FORMAT, datefmt="%d/%m/%Y %H:%M:%S")
