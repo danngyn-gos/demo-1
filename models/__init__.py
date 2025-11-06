@@ -1,2 +1,2 @@
-from .anger_toxic_model import AngerToxicClasModel
+from .anger_toxic_model import AngerToxicClassifyModel
 from .sentiment_model import SentimentModel

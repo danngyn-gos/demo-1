@@ -4,7 +4,7 @@ from transformers import DistilBertModel, AutoConfig
 from typing import Optional
 
 
-class AngerToxicClasModel(nn.Module):
+class AngerToxicClassifyModel(nn.Module):
     def __init__(self,
                  config,
                  ):

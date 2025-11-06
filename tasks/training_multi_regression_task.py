@@ -72,9 +72,9 @@ class TrainingMultiRegressTask(BaseTask):
             
             # val scores
             scores = self.evaluate_metrics(self.dev_dataloader)
-            anger_val_score = scores[self.score[0]]
-            toxic_val_score = scores[self.score[1]]
-            val_score = 0.5 * anger_val_score + 0.5 * toxic_val_score
+            sentiment_val_score = scores[self.score[0]]
+            empathy_val_score = scores[self.score[1]]
+            val_score = 0.5 * sentiment_val_score + 0.5 * empathy_val_score
             
             best = False
             if val_score > best_val_score:
