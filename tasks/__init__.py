@@ -1,0 +1,2 @@
+from .training_multi_class_task import TrainingMultiClassTask
+from .training_multi_regression_task import TrainingMultiRegressTask

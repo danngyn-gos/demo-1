@@ -4,9 +4,9 @@ import pandas as pd
 import torch
 
 
-class Sentiment(Dataset):
+class SentimentDataset(Dataset):
     def __init__(self, config, df_path):
-        super(Sentiment, self).__init__()
+        super(SentimentDataset, self).__init__()
         self.df = pd.read_csv(df_path)
         self.tokenizer = DistilBertTokenizer.from_pretrained(config.PRETRAINED)
         self.unpack_data()

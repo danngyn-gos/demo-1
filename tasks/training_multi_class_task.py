@@ -3,7 +3,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from dataset.anger_toxic_dataset import AngerToxicDataset
+from dataset import AngerToxicDataset
 from evaluation import accuracy
 import os
 from shutil import copyfile
