@@ -9,26 +9,18 @@ class SentimentDataset(Dataset):
         super(SentimentDataset, self).__init__()
         self.df = pd.read_csv(df_path)
         self.tokenizer = DistilBertTokenizer.from_pretrained(config.PRETRAINED)
-        self.unpack_data()
 
+        self.text = self.df.text.tolist()
+        self.empathy_score = self.df.Empathy.tolist()
+        self.sentiment_score = self.df.Emotion.tolist()
+        
     def __len__(self):
         return len(self.df)
 
     def __getitem__(self, idx):
-        return {'text': self.df.iloc[idx].text,
-                'empathy': self.df.iloc[idx].Empathy.item(),
-                'sentiment': self.df.iloc[idx].Emotion.item()}
-
-    def unpack_data(self):
-        self.text = []
-        self.empathy = []
-        self.sentiment = []
-
-        for i in range(self.df.shape[0]):
-            sample = self.df.iloc[i]
-            self.text.append(sample['text'])
-            self.empathy.append(sample['empathy'])
-            self.sentiment.append(sample['sentiment'])
+        return {'text': self.text[idx],
+                'empathy': self.empathy_score[idx],
+                'sentiment': self.sentiment_score[idx]}
 
     def collate_fn(self, batch):
         text = [item['text'] for item in batch]

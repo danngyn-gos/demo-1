@@ -9,26 +9,18 @@ class AngerToxicDataset(Dataset):
         super(AngerToxicDataset, self).__init__()
         self.df = pd.read_csv(df_path)
         self.tokenizer = DistilBertTokenizer.from_pretrained(config.PRETRAINED)
-        self.unpack_data()
 
+        self.text = self.df.text.tolist()
+        self.anger = self.df.anger.tolist()
+        self.toxicity = self.df.toxicity.tolist()
+        
     def __len__(self):
         return len(self.df)
 
     def __getitem__(self, idx):
-        return {'text': self.df.iloc[idx].text,
-                'anger': self.df.iloc[idx].anger.item(),
-                'toxic': self.df.iloc[idx].toxicity.item()}
-
-    def unpack_data(self):
-        self.text = []
-        self.anger = []
-        self.toxic = []
-
-        for i in range(self.df.shape[0]):
-            sample = self.df.iloc[i]
-            self.text.append(sample['text'])
-            self.anger.append(sample['anger'])
-            self.toxic.append(sample['toxicity'])
+        return {'text': self.text[idx],
+                'anger': self.anger[idx],
+                'toxic': self.toxicity[idx]}
 
     def collate_fn(self, batch):
         text = [item['text'] for item in batch]
