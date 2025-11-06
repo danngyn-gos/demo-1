@@ -10,7 +10,7 @@ from shutil import copyfile
 from transformers import get_linear_schedule_with_warmup
 
 
-class TrainingMultiTask(BaseTask):
+class TrainingMultiClassTask(BaseTask):
     def __init__(self, config, model):
         super().__init__(config, model)
         

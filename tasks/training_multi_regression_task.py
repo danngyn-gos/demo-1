@@ -10,7 +10,7 @@ from shutil import copyfile
 from transformers import get_linear_schedule_with_warmup
 
 
-class TrainingMultiTask(BaseTask):
+class TrainingMultiRegressTask(BaseTask):
     def __init__(self, config, model):
         super().__init__(config, model)
         
@@ -25,7 +25,7 @@ class TrainingMultiTask(BaseTask):
             num_warmup_steps=self.warmup,
             num_training_steps=len(self.train_dataloader) * self.epoch
         )
-        
+
     def get_task_weights(self, losses, alpha=0.12):
         """Compute task weights inversely proportional to gradient norms"""
         grad_norms = []
