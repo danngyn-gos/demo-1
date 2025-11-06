@@ -8,6 +8,8 @@ from evaluation import accuracy
 import os
 from shutil import copyfile
 from transformers import get_linear_schedule_with_warmup
+from utils.logging_utils import setup_logger
+logger = setup_logger()
 
 
 class TrainingMultiClassTask(BaseTask):
@@ -70,11 +72,13 @@ class TrainingMultiClassTask(BaseTask):
             patience = 0
         
         for it in range(self.epoch):
+            logger.info("Epoch %s", self.running_epoch)
             self.train()
             self.evaluate_loss()
             
             # val scores
             scores = self.evaluate_metrics(self.dev_dataloader)
+            logger.info("Validation scores %s", scores)
             anger_val_score = scores[self.score[0]]
             toxic_val_score = scores[self.score[1]]
             val_score = 0.5 * anger_val_score + 0.5 * toxic_val_score
@@ -145,6 +149,7 @@ class TrainingMultiClassTask(BaseTask):
 
                 pbar.set_postfix(loss=running_loss / (it + 1))
                 pbar.update()
+        logger.info("Training Loss: %s", running_loss)
         self.scheduler.step()
 
     def evaluate_loss(self):
@@ -176,6 +181,7 @@ class TrainingMultiClassTask(BaseTask):
 
                 pbar.set_postfix(loss=running_loss / (it + 1))
                 pbar.update()
+        logger.info("Dev Loss: %s", running_loss)
                 
     def evaluate_metrics(self, dataloader):
         anger_gts, toxic_gts = [], []

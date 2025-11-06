@@ -8,6 +8,9 @@ from evaluation import mean_squared_error
 import os
 from shutil import copyfile
 from transformers import get_linear_schedule_with_warmup
+from utils.logging_utils import setup_logger
+
+logger = setup_logger('logs/SentimentModel')
 
 
 class TrainingMultiRegressTask(BaseTask):
@@ -67,11 +70,13 @@ class TrainingMultiRegressTask(BaseTask):
             patience = 0
         
         for it in range(self.epoch):
+            logger.info('Epoch %s', self.epoch)
             self.train()
             self.evaluate_loss()
             
             # val scores
             scores = self.evaluate_metrics(self.dev_dataloader)
+            logger.info('Scores: %s', scores)
             sentiment_val_score = scores[self.score[0]]
             empathy_val_score = scores[self.score[1]]
             val_score = 0.5 * sentiment_val_score + 0.5 * empathy_val_score
@@ -144,6 +149,7 @@ class TrainingMultiRegressTask(BaseTask):
 
                 pbar.set_postfix(loss=running_loss / (it + 1))
                 pbar.update()
+        logger.info('Train Loss: %s', running_loss)
         self.scheduler.step()
 
     def evaluate_loss(self):
@@ -164,7 +170,6 @@ class TrainingMultiRegressTask(BaseTask):
                 sentiment_loss = self.sentiment_loss(out['sentiment_output'],
                                                      items['sentiment'])
                 
-                
                 loss = (empathy_loss + sentiment_loss) / 2
 
                 this_loss = loss.item()
@@ -172,7 +177,8 @@ class TrainingMultiRegressTask(BaseTask):
 
                 pbar.set_postfix(loss=running_loss / (it + 1))
                 pbar.update()
-                
+        logger.info('Dev Loss: %s', running_loss)
+
     def evaluate_metrics(self, dataloader):
         empathy_gts, sentiment_gts = [], []
         empathy_gens, sentiment_gens = [], []
@@ -188,7 +194,7 @@ class TrainingMultiRegressTask(BaseTask):
                                       items['attention_mask'])
                 
                 sentiment_gts.append(items['sentiment'])
-                sentiment_gens.append(outs['sentiment_outpu'])
+                sentiment_gens.append(outs['sentiment_output'])
 
                 empathy_gts.append(items['empathy'])
                 empathy_gens.append(outs['empathy_output'])

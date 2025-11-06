@@ -1,5 +1,3 @@
-
-
 TASK: TRAIN_SENTIMENT_MODEL
 
 TRAINING:
@@ -7,14 +5,14 @@ TRAINING:
     EPOCH: 20
     DEVICE: cuda
     BATCH_SIZE: 32
-    WARMUP: 1000
+    WARMUP: 1738
     PATIENCE: 5
-    SCORE: MSE
-    CHECKPOINT_PATH: saved_models
+    SCORE: [sentiment_mse, empathy_mse]
+    CHECKPOINT_PATH: /content/drive/MyDrive/demo1/checkpoints/EmpathySent/checkpoints_0
     DATA_PATH:
-        TRAIN: /content/drive/MyDrive/demo1/training_data/train.csv
-        DEV:   /content/drive/MyDrive/demo1/training_data/dev.csv
-        TEST:  /content/drive/MyDrive/demo1/training_data/test.csv
+        TRAIN: /content/drive/MyDrive/demo1/training_data/empaSent/train.csv
+        DEV:   /content/drive/MyDrive/demo1/training_data/empaSent/dev.csv
+        TEST:  /content/drive/MyDrive/demo1/training_data/empaSent/test.csv
 
 MODEL:
     PRETRAINED: tabularisai/multilingual-sentiment-analysis
@@ -29,6 +27,6 @@ DATA:
     PRETRAINED: tabularisai/multilingual-sentiment-analysis
     NUM_ITEMS: 25402
     DATA_PATH:
-        TRAIN: /content/drive/MyDrive/demo1/training_data/train.csv
-        DEV:   /content/drive/MyDrive/demo1/training_data/dev.csv
-        TEST:  /content/drive/MyDrive/demo1/training_data/test.csv
+        TRAIN: /content/drive/MyDrive/demo1/training_data/empaSent/train.csv
+        DEV:   /content/drive/MyDrive/demo1/training_data/empaSent/dev.csv
+        TEST:  /content/drive/MyDrive/demo1/training_data/empaSent/test.csv

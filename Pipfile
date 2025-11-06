@@ -9,6 +9,7 @@ transformers = "*"
 pyyaml = "*"
 yacs = "*"
 pandas = "*"
+termcolor = "*"
 
 [dev-packages]
 
