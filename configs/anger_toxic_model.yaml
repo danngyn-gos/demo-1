@@ -17,6 +17,7 @@ TRAINING:
 
 MODEL:
     PRETRAINED: tabularisai/multilingual-sentiment-analysis
+    LOAD_PRETRAINED: True
     IN_FEATURE: 768
     DIM: 768
     ANGER: 2

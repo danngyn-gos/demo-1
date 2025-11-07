@@ -11,7 +11,15 @@ class AngerToxicClassifyModel(nn.Module):
         super().__init__()
         self.bert_config = AutoConfig.from_pretrained(config.PRETRAINED)
         self.config = config
-        self.distilbert = DistilBertModel(self.bert_config).from_pretrained(config.PRETRAINED)
+        
+        if config.LOAD_PRETRAINED:
+            self.distilbert = DistilBertModel(self.bert_config).from_pretrained(config.PRETRAINED)
+        else:
+            self.distilbert = DistilBertModel(self.bert_config)
+
+        if self.config.FREEZE_BACKBONE:
+            self.freeze_backbone()
+        
         self.latent_dim = config.DIM
         self.pre_classifier = nn.Linear(self.latent_dim, config.DIM)
         
@@ -21,8 +29,7 @@ class AngerToxicClassifyModel(nn.Module):
         self.toxicity_head = nn.Linear(self.latent_dim, config.TOXICITY)
         self.dropout = nn.Dropout(config.DROPOUT)
         
-        if self.config.FREEZE_BACKBONE:
-            self.freeze_backbone()
+        
     
     def freeze_backbone(self):
         for param in self.distilbert.parameters():
