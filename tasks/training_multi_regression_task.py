@@ -244,6 +244,6 @@ class TrainingMultiRegressTask(BaseTask):
                                          batch_size=1,
                                          collate_fn=self.dev_dataset.collate_fn)
         
-        self.test_dataloader = DataLoader(self.dev_dataset,
+        self.test_dataloader = DataLoader(self.test_dataset,
                                           batch_size=1,
                                           collate_fn=self.dev_dataset.collate_fn)

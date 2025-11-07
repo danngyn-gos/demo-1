@@ -227,9 +227,9 @@ class TrainingMultiClassTask(BaseTask):
         self.train_dataset = AngerToxicDataset(self.config.DATA,
                                               self.config.TRAINING.DATA_PATH.TRAIN)
         self.dev_dataset = AngerToxicDataset(self.config.DATA,
-                                              self.config.TRAINING.DATA_PATH.TRAIN)
+                                              self.config.TRAINING.DATA_PATH.DEV)
         self.test_dataset = AngerToxicDataset(self.config.DATA,
-                                              self.config.TRAINING.DATA_PATH.TRAIN)
+                                              self.config.TRAINING.DATA_PATH.TEST)
     
     def create_dataloaders(self):
         self.train_dataloader = DataLoader(self.train_dataset,
@@ -240,6 +240,6 @@ class TrainingMultiClassTask(BaseTask):
                                          batch_size=1,
                                          collate_fn=self.dev_dataset.collate_fn)
         
-        self.test_dataloader = DataLoader(self.dev_dataset,
+        self.test_dataloader = DataLoader(self.ttest_datasetest,
                                           batch_size=1,
                                           collate_fn=self.dev_dataset.collate_fn)
