@@ -10,6 +10,7 @@ from shutil import copyfile
 from transformers import get_linear_schedule_with_warmup
 from utils.logging_utils import setup_logger
 import numpy as np
+import torch.nn.functional as f
 
 logger = setup_logger('logs/SentimentModel')
 
@@ -18,8 +19,8 @@ class TrainingMultiRegressTask(BaseTask):
     def __init__(self, config, model):
         super().__init__(config, model)
         
-        self.empathy_loss = nn.L1Loss()
-        self.sentiment_loss = nn.L1Loss()
+        self.empathy_loss = nn.MSELoss()
+        self.sentiment_loss = nn.MSELoss()
         
         self.load_datasets()
         self.create_dataloaders()
@@ -132,6 +133,10 @@ class TrainingMultiRegressTask(BaseTask):
                         items[key] = value.to(self.device)
                 out = self.model(items['input_ids'], items['attention_mask'])
                 
+                # Apply sigmoid to the predictions
+                for k, v in out.item():
+                    out[k] = f.sigmoid(v)
+                
                 self.optimizer.zero_grad()
                 
                 empathy_loss = self.empathy_loss(out['empathy_output'],
@@ -143,8 +148,6 @@ class TrainingMultiRegressTask(BaseTask):
                     losses=losses
                     )
                 loss = sum(w * l for w, l in zip(weights, losses))
-            
-                # loss = (anger_loss + toxic_loss) / 2
                 
                 loss.backward()
 
@@ -169,7 +172,9 @@ class TrainingMultiRegressTask(BaseTask):
                 with torch.no_grad():
                     out = self.model(items['input_ids'],
                                      items['attention_mask'])
-                
+                # Apply sigmoid to the predictions
+                for k, v in out.item():
+                    out[k] = f.sigmoid(v)
                 empathy_loss = self.empathy_loss(out['empathy_output'],
                                                  items['empathy'])
                 sentiment_loss = self.sentiment_loss(out['sentiment_output'],
@@ -198,6 +203,9 @@ class TrainingMultiRegressTask(BaseTask):
                     outs = self.model(items['input_ids'],
                                       items['attention_mask'])
                 
+                for k, v in outs.item():
+                    outs[k] = f.sigmoid(v)
+                    
                 sentiment_gts.append(items['sentiment'])
                 sentiment_gens.append(outs['sentiment_output'])
 
