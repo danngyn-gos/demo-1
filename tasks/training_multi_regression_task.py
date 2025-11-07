@@ -134,7 +134,7 @@ class TrainingMultiRegressTask(BaseTask):
                 out = self.model(items['input_ids'], items['attention_mask'])
                 
                 # Apply sigmoid to the predictions
-                for k, v in out.item():
+                for k, v in out.items():
                     out[k] = f.sigmoid(v)
                 
                 self.optimizer.zero_grad()
@@ -173,7 +173,7 @@ class TrainingMultiRegressTask(BaseTask):
                     out = self.model(items['input_ids'],
                                      items['attention_mask'])
                 # Apply sigmoid to the predictions
-                for k, v in out.item():
+                for k, v in out.items():
                     out[k] = f.sigmoid(v)
                 empathy_loss = self.empathy_loss(out['empathy_output'],
                                                  items['empathy'])
@@ -203,7 +203,7 @@ class TrainingMultiRegressTask(BaseTask):
                     outs = self.model(items['input_ids'],
                                       items['attention_mask'])
                 
-                for k, v in outs.item():
+                for k, v in outs.items():
                     outs[k] = f.sigmoid(v)
                     
                 sentiment_gts.append(items['sentiment'])
