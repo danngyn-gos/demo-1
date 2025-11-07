@@ -157,7 +157,7 @@ class TrainingMultiRegressTask(BaseTask):
 
                 pbar.set_postfix(loss=running_loss / (it + 1))
                 pbar.update()
-        logger.info('Train Loss: %s', running_loss)
+        logger.info('Train Loss: %s', running_loss / len(self.train_dataloader))
         self.scheduler.step()
 
     def evaluate_loss(self):
@@ -187,7 +187,7 @@ class TrainingMultiRegressTask(BaseTask):
 
                 pbar.set_postfix(loss=running_loss / (it + 1))
                 pbar.update()
-        logger.info('Dev Loss: %s', running_loss)
+        logger.info('Dev Loss: %s', running_loss / len(self.dev_dataloader))
 
     def evaluate_metrics(self, dataloader):
         empathy_gts, sentiment_gts = [], []
