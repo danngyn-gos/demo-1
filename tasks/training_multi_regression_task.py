@@ -205,12 +205,11 @@ class TrainingMultiRegressTask(BaseTask):
                 
                 for k, v in outs.items():
                     outs[k] = f.sigmoid(v)
-                    
-                sentiment_gts.append(items['sentiment'])
-                sentiment_gens.append(outs['sentiment_output'])
-
-                empathy_gts.append(items['empathy'])
                 empathy_gens.append(outs['empathy_output'])
+                sentiment_gens.append(outs['sentiment_output'])
+                
+                empathy_gts.append(items['empathy'])
+                sentiment_gts.append(items['sentiment'])              
                 
                 pbar.update()
         sentiment_gts = torch.stack(sentiment_gts)
