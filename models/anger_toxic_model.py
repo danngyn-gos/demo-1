@@ -11,7 +11,7 @@ class AngerToxicClassifyModel(nn.Module):
         super().__init__()
         self.bert_config = AutoConfig.from_pretrained(config.PRETRAINED)
         self.config = config
-        self.distilbert = DistilBertModel(self.bert_config)
+        self.distilbert = DistilBertModel(self.bert_config).from_pretrained(config.PRETRAINED)
         self.latent_dim = config.DIM
         self.pre_classifier = nn.Linear(self.latent_dim, config.DIM)
         
