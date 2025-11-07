@@ -135,15 +135,20 @@ class TrainingMultiClassTask(BaseTask):
                 
                 self.optimizer.zero_grad()
                 
+                loss = 0
                 anger_loss = self.anger_loss_fn(out['anger_output'], items['anger'])
                 toxic_loss = self.toxic_loss_fn(out['toxic_output'], items['toxic'])
                 losses = [anger_loss, toxic_loss]
-                weights = self.get_task_weights(
-                    losses=losses
-                    )
-                loss = sum(w * l for w, l in zip(weights, losses))
-            
-                # loss = (anger_loss + toxic_loss) / 2
+                
+                if not self.config.MODEL.FREEZE_BACKBONE:
+                    weights = self.get_task_weights(
+                        losses=losses
+                        )
+                    loss = sum(w * l for w, l in zip(weights, losses))
+                
+                else:
+                    for l_ in losses:
+                        loss += l_
                 
                 loss.backward()
 
@@ -178,7 +183,7 @@ class TrainingMultiClassTask(BaseTask):
                 #     )
                 # loss = sum(w * l for w, l in zip(weights, losses))
                 
-                loss = (anger_loss + toxic_loss) / 2
+                loss = anger_loss + toxic_loss
 
                 this_loss = loss.item()
                 running_loss += this_loss

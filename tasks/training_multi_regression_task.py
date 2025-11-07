@@ -139,15 +139,22 @@ class TrainingMultiRegressTask(BaseTask):
                 
                 self.optimizer.zero_grad()
                 
+                loss = 0
                 empathy_loss = self.empathy_loss(out['empathy_output'],
                                                  items['empathy'])
                 sentiment_loss = self.sentiment_loss(out['sentiment_output'],
                                                      items['sentiment'])
                 losses = [empathy_loss, sentiment_loss]
-                weights = self.get_task_weights(
-                    losses=losses
-                    )
-                loss = sum(w * l for w, l in zip(weights, losses))
+                
+                if not self.config.MODEL.FREEZE_BACKBONE:
+                    weights = self.get_task_weights(
+                        losses=losses
+                        )
+                    loss = sum(w * l for w, l in zip(weights, losses))
+                
+                else:
+                    for l_ in losses:
+                        loss += l_
                 
                 loss.backward()
 
@@ -180,7 +187,7 @@ class TrainingMultiRegressTask(BaseTask):
                 sentiment_loss = self.sentiment_loss(out['sentiment_output'],
                                                      items['sentiment'])
                 
-                loss = (empathy_loss + sentiment_loss) / 2
+                loss = empathy_loss + sentiment_loss
 
                 this_loss = loss.item()
                 running_loss += this_loss
