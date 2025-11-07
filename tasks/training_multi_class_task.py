@@ -245,6 +245,6 @@ class TrainingMultiClassTask(BaseTask):
                                          batch_size=1,
                                          collate_fn=self.dev_dataset.collate_fn)
         
-        self.test_dataloader = DataLoader(self.ttest_datasetest,
+        self.test_dataloader = DataLoader(self.test_dataset,
                                           batch_size=1,
                                           collate_fn=self.dev_dataset.collate_fn)
