@@ -4,11 +4,12 @@ from torch import nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from dataset import AngerToxicDataset
-from evaluation import accuracy
+from evaluation import f1_score
 import os
 from shutil import copyfile
 from transformers import get_linear_schedule_with_warmup
 from utils.logging_utils import setup_logger
+
 logger = setup_logger('logs/multiclass')
 
 
@@ -218,11 +219,11 @@ class TrainingMultiClassTask(BaseTask):
         toxic_gts = torch.stack(toxic_gts)
         toxic_gens = torch.stack(toxic_gens)
         
-        anger_acc = accuracy(anger_gens, anger_gts)
-        toxic_acc = accuracy(toxic_gens, toxic_gts)
+        anger_f1 = f1_score(anger_gens, anger_gts)
+        toxic_f1 = f1_score(toxic_gens, toxic_gts)
         scores = {
-            'anger_accuracy': anger_acc,
-            'toxic_accuracy': toxic_acc
+            'anger_accuracy': anger_f1,
+            'toxic_accuracy': toxic_f1
         }
 
         print(scores)

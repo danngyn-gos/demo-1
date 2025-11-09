@@ -1,7 +1,7 @@
 import torch
 
 
-def accuracy(preds, labels):
-    predicted = torch.argmax(preds, dim=-1)
-    correct = (predicted == labels).sum().item()
-    return correct / labels.size(0)
+def accuracy(predictions, targets):
+    predicted = torch.argmax(predictions, dim=-1)
+    correct = (predicted == targets).sum().item()
+    return correct / targets.size(0)
