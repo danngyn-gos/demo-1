@@ -4,7 +4,7 @@ TRAINING:
     LEARNING_RATE: 0.0001
     EPOCH: 20
     DEVICE: cuda
-    SCORE: ['anger_accuracy', 'toxic_accuracy']
+    SCORE: ['anger_f1', 'toxic_f1']
     BATCH_SIZE: 32
     WARMUP: 1000
     PATIENCE: 5
