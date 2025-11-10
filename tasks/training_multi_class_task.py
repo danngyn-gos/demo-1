@@ -233,9 +233,9 @@ class TrainingMultiClassTask(BaseTask):
 
     def load_datasets(self):
         self.train_dataset = AngerToxicDataset(self.config.DATA,
-                                              self.config.TRAINING.DATA_PATH.TRAIN)
+                                               self.config.TRAINING.DATA_PATH.TRAIN)
         self.dev_dataset = AngerToxicDataset(self.config.DATA,
-                                              self.config.TRAINING.DATA_PATH.DEV)
+                                             self.config.TRAINING.DATA_PATH.DEV)
         self.test_dataset = AngerToxicDataset(self.config.DATA,
                                               self.config.TRAINING.DATA_PATH.TEST)
 
