@@ -9,20 +9,17 @@ import os
 from shutil import copyfile
 from transformers import get_linear_schedule_with_warmup
 from utils.logging_utils import setup_logger
-
+import torch.nn.functional as F
 logger = setup_logger('logs/multiclass')
 
 
 class TrainingMultiClassTask(BaseTask):
     def __init__(self, config, model):
         super().__init__(config, model)
-        
+
         self.anger_loss_fn = nn.CrossEntropyLoss()
-        self.toxic_loss_fn = nn.CrossEntropyLoss(
-            weight=torch.tensor(config.TRAINING.TOXIC_WEIGHTED_LOSS).to(self.device)
-            )
-        # self.scheduler = LambdaLR(self.optimizer, self.lambda_lr)
-        
+        self.toxic_loss_fn = nn.CrossEntropyLoss()
+
         self.load_datasets()
         self.create_dataloaders()
 
@@ -31,31 +28,36 @@ class TrainingMultiClassTask(BaseTask):
             num_warmup_steps=self.warmup,
             num_training_steps=len(self.train_dataloader) * self.epoch
         )
-        
+
         logger.info("%s start", config.TASK)
         logger.info("Learning Rate: %s", config.TRAINING.LEARNING_RATE)
         logger.info("Warm up: %s", self.warmup)
-        
-    def get_task_weights(self, losses, alpha=0.12):
-        """Compute task weights inversely proportional to gradient norms"""
+
+    def get_task_weights(self, losses, alpha=1.0):
+        """Compute task weights PROPORTIONAL to gradient norms"""
         grad_norms = []
-        
+
         for loss in losses:
-            # Compute gradients
+            # Compute gradients for shared parameters only
+            self.optimizer.zero_grad()
+            loss.backward(retain_graph=True)
+
             shared_params = list(self.model.distilbert.parameters()) + \
                             list(self.model.pre_classifier.parameters())
-            grads = torch.autograd.grad(loss, shared_params,
-                                        retain_graph=True)
-            grad_norm = torch.sqrt(sum((g**2).sum() for g in grads))
+            grad_norm = 0.0
+            for param in shared_params:
+                if param.grad is not None:
+                    grad_norm += (param.grad ** 2).sum()
+            grad_norm = torch.sqrt(grad_norm)
             grad_norms.append(grad_norm)
-        
-        # Normalize inversely - tasks with larger gradients get smaller weights
+
+        # Give MORE weight to tasks with larger gradients
         grad_norms = torch.stack(grad_norms)
-        weights = grad_norms.mean() / (grad_norms + 1e-8)
-        weights = weights / weights.sum() * len(losses)  # normalize
-        
+        weights = grad_norms / grad_norms.mean()  # proportional weighting
+        weights = torch.softmax(weights / alpha, dim=0)  # softmax with temperature
+
         return weights.detach()
-    
+
     def start(self):
         if os.path.isfile(os.path.join(self.checkpoint_path, "last_model.pth")):
             checkpoint = self.load_checkpoint(
@@ -75,19 +77,19 @@ class TrainingMultiClassTask(BaseTask):
         else:
             best_val_score = .0
             patience = 0
-        
+
         for it in range(self.epoch):
             logger.info("Epoch %s", self.running_epoch)
             self.train()
-            self.evaluate_loss()
-            
+            # self.evaluate_loss()
+
             # val scores
             scores = self.evaluate_metrics(self.dev_dataloader)
             logger.info("Validation scores %s", scores)
             anger_val_score = scores[self.score[0]]
             toxic_val_score = scores[self.score[1]]
             val_score = 0.5 * anger_val_score + 0.5 * toxic_val_score
-            
+
             best = False
             if val_score > best_val_score:
                 best_val_score = val_score
@@ -107,7 +109,7 @@ class TrainingMultiClassTask(BaseTask):
             })
 
             if best:
-                copyfile(os.path.join(self.checkpoint_path, "last_model.pth"), 
+                copyfile(os.path.join(self.checkpoint_path, "last_model.pth"),
                          os.path.join(self.checkpoint_path, "best_model.pth"))
 
             if exit_train:
@@ -116,7 +118,7 @@ class TrainingMultiClassTask(BaseTask):
             self.running_epoch += 1
         test_scores = self.evaluate_metrics(self.test_dataloader)
         print(f"Evaluation on test set: {test_scores}")
-        
+
     def lambda_lr(self, step):
         warm_up = self.warmup
         step += 1
@@ -133,24 +135,24 @@ class TrainingMultiClassTask(BaseTask):
                     if isinstance(value, torch.Tensor):
                         items[key] = value.to(self.device)
                 out = self.model(items['input_ids'], items['attention_mask'])
-                
+
                 self.optimizer.zero_grad()
-                
+
                 loss = 0
                 anger_loss = self.anger_loss_fn(out['anger_output'], items['anger'])
                 toxic_loss = self.toxic_loss_fn(out['toxic_output'], items['toxic'])
                 losses = [anger_loss, toxic_loss]
-                
+
                 if not self.config.MODEL.FREEZE_BACKBONE:
                     weights = self.get_task_weights(
                         losses=losses
-                        )
+                    )
                     loss = sum(w * l for w, l in zip(weights, losses))
-                
+                    # logger.info("Loss weights %s", weights)
                 else:
                     for l_ in losses:
                         loss += l_
-                
+
                 loss.backward()
 
                 self.optimizer.step()
@@ -170,20 +172,20 @@ class TrainingMultiClassTask(BaseTask):
                 for key, value in items.items():
                     if isinstance(value, torch.Tensor):
                         items[key] = value.to(self.device)
-                    
+
                 with torch.no_grad():
                     out = self.model(items['input_ids'],
                                      items['attention_mask'])
-                
+
                 anger_loss = self.anger_loss_fn(out['anger_output'], items['anger'])
                 toxic_loss = self.toxic_loss_fn(out['toxic_output'], items['toxic'])
-                
+
                 # losses = [anger_loss, toxic_loss]
                 # weights = self.get_task_weights(
                 #     losses=losses
                 #     )
                 # loss = sum(w * l for w, l in zip(weights, losses))
-                
+
                 loss = anger_loss + toxic_loss
 
                 this_loss = loss.item()
@@ -192,11 +194,11 @@ class TrainingMultiClassTask(BaseTask):
                 pbar.set_postfix(loss=running_loss / (it + 1))
                 pbar.update()
         logger.info("Dev Loss: %s", running_loss / len(self.dev_dataloader))
-                
+
     def evaluate_metrics(self, dataloader):
         anger_gts, toxic_gts = [], []
         anger_gens, toxic_gens = [], []
-        
+
         self.model.eval()
         with tqdm(desc='Epoch %d - Evaluation' % self.running_epoch, unit='it', total=len(dataloader)) as pbar:
             for it, items in enumerate(dataloader):
@@ -206,29 +208,29 @@ class TrainingMultiClassTask(BaseTask):
                 with torch.inference_mode():
                     outs = self.model(items['input_ids'],
                                       items['attention_mask'])
-                
+
                 anger_gts.append(items['anger'])
                 anger_gens.append(outs['anger_output'])
 
                 toxic_gts.append(items['toxic'])
                 toxic_gens.append(outs['toxic_output'])
-                
+
                 pbar.update()
         anger_gts = torch.stack(anger_gts)
         anger_gens = torch.stack(anger_gens)
         toxic_gts = torch.stack(toxic_gts)
         toxic_gens = torch.stack(toxic_gens)
-        
+
         anger_f1 = f1_score(anger_gens, anger_gts)
         toxic_f1 = f1_score(toxic_gens, toxic_gts)
         scores = {
-            'anger_accuracy': anger_f1,
-            'toxic_accuracy': toxic_f1
+            'anger_f1': anger_f1,
+            'toxic_f1': toxic_f1
         }
 
         print(scores)
         return scores
-    
+
     def load_datasets(self):
         self.train_dataset = AngerToxicDataset(self.config.DATA,
                                               self.config.TRAINING.DATA_PATH.TRAIN)
@@ -236,16 +238,16 @@ class TrainingMultiClassTask(BaseTask):
                                               self.config.TRAINING.DATA_PATH.DEV)
         self.test_dataset = AngerToxicDataset(self.config.DATA,
                                               self.config.TRAINING.DATA_PATH.TEST)
-    
+
     def create_dataloaders(self):
         self.train_dataloader = DataLoader(self.train_dataset,
                                            batch_size=self.config.TRAINING.BATCH_SIZE,
                                            collate_fn=self.train_dataset.collate_fn)
-        
+
         self.dev_dataloader = DataLoader(self.dev_dataset,
                                          batch_size=1,
                                          collate_fn=self.dev_dataset.collate_fn)
-        
+
         self.test_dataloader = DataLoader(self.test_dataset,
                                           batch_size=1,
                                           collate_fn=self.dev_dataset.collate_fn)
