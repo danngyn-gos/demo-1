@@ -18,7 +18,7 @@ class AngerToxicClassifyModel(nn.Module):
             self.distilbert = DistilBertModel(self.bert_config)
 
         if self.config.FREEZE_BACKBONE:
-            self.freeze_backbone()
+            self.freeze_distilbert_layers()
         
         self.latent_dim = config.DIM
         self.pre_classifier = nn.Linear(self.latent_dim, config.DIM)
@@ -28,13 +28,17 @@ class AngerToxicClassifyModel(nn.Module):
 
         self.toxicity_head = nn.Linear(self.latent_dim, config.TOXICITY)
         self.dropout = nn.Dropout(config.DROPOUT)
-        
-        
-    
-    def freeze_backbone(self):
-        for param in self.distilbert.parameters():
+
+    def freeze_distilbert_layers(self, num_freeze=2):
+        # Freeze embeddings
+        for param in self.distilbert.embeddings.parameters():
             param.requires_grad = False
 
+        # Freeze first N transformer layers
+        for i in range(num_freeze):
+            for param in self.distilbert.transformer.layer[i].parameters():
+                param.requires_grad = False
+    
     def forward(self,
                 input_ids: Optional[torch.Tensor] = None,
                 attention_mask: Optional[torch.Tensor] = None,
