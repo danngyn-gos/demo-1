@@ -18,7 +18,7 @@ class SentimentModel(nn.Module):
             self.distilbert = DistilBertModel(self.bert_config)
         
         if self.config.FREEZE_BACKBONE:
-            self.freeze_backbone()
+            self.freeze_distilbert_layers()
         
         self.latent_dim = config.DIM
         self.pre_classifier = nn.Linear(self.latent_dim, config.DIM)
