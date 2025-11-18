@@ -24,16 +24,20 @@ class SentimentModel(nn.Module):
         self.pre_classifier = nn.Linear(self.latent_dim, config.DIM)
         
         # self.sent_classifier = nn.Linear(config.DIM, config.SENT_CLASSES)
-        self.empathy_head = nn.Linear(self.latent_dim, config.EMPATHY)
+        # self.empathy_head = nn.Linear(self.latent_dim, config.EMPATHY)
 
         self.sentiment_head = nn.Linear(self.latent_dim, config.SENTIMENT)
         self.dropout = nn.Dropout(config.DROPOUT)
         
-        
-    
-    def freeze_backbone(self):
-        for param in self.distilbert.parameters():
+    def freeze_distilbert_layers(self, num_freeze=2):
+        # Freeze embeddings
+        for param in self.distilbert.embeddings.parameters():
             param.requires_grad = False
+
+        # Freeze first N transformer layers
+        for i in range(num_freeze):
+            for param in self.distilbert.transformer.layer[i].parameters():
+                param.requires_grad = False
 
     def forward(self,
                 input_ids: Optional[torch.Tensor] = None,
@@ -54,15 +58,6 @@ class SentimentModel(nn.Module):
         pooled_output = self.dropout(pooled_output)  # (bs, dim)
 
         # Sentiment head
-        # sent_output = self.sent_classifier(pooled_output)
-
-        # Emotion head
-        empathy_output = self.empathy_head(pooled_output)
-
-        # Toxicity head
         sentiment_output = self.sentiment_head(pooled_output)
 
-        return {
-            'empathy_output': empathy_output,
-            'sentiment_output': sentiment_output
-        }
+        return sentiment_output

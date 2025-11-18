@@ -19,7 +19,6 @@ class TrainingMultiRegressTask(BaseTask):
     def __init__(self, config, model):
         super().__init__(config, model)
         
-        self.empathy_loss = nn.MSELoss()
         self.sentiment_loss = nn.MSELoss()
         
         self.load_datasets()
@@ -34,26 +33,6 @@ class TrainingMultiRegressTask(BaseTask):
         logger.info("%s start", config.TASK)
         logger.info("Learning Rate: %s", config.TRAINING.LEARNING_RATE)
         logger.info("Warm up: %s", self.warmup)
-
-    def get_task_weights(self, losses, alpha=0.12):
-        """Compute task weights inversely proportional to gradient norms"""
-        grad_norms = []
-        
-        for loss in losses:
-            # Compute gradients
-            shared_params = list(self.model.distilbert.parameters()) + \
-                            list(self.model.pre_classifier.parameters())
-            grads = torch.autograd.grad(loss, shared_params,
-                                        retain_graph=True)
-            grad_norm = torch.sqrt(sum((g**2).sum() for g in grads))
-            grad_norms.append(grad_norm)
-        
-        # Normalize inversely - tasks with larger gradients get smaller weights
-        grad_norms = torch.stack(grad_norms)
-        weights = grad_norms.mean() / (grad_norms + 1e-8)
-        weights = weights / weights.sum() * len(losses)  # normalize
-        
-        return weights.detach()
     
     def start(self):
         if os.path.isfile(os.path.join(self.checkpoint_path, "last_model.pth")):
@@ -83,13 +62,11 @@ class TrainingMultiRegressTask(BaseTask):
             # val scores
             scores = self.evaluate_metrics(self.dev_dataloader)
             logger.info('Scores: %s', scores)
-            sentiment_val_score = scores[self.score[0]]
-            empathy_val_score = scores[self.score[1]]
-            val_score = 0.5 * sentiment_val_score + 0.5 * empathy_val_score
+            sentiment_val_score = scores[self.score]
             
             best = False
-            if val_score < best_val_score:
-                best_val_score = val_score
+            if sentiment_val_score < best_val_score:
+                best_val_score = sentiment_val_score
                 patience = 0
                 best = True
             else:
@@ -115,11 +92,6 @@ class TrainingMultiRegressTask(BaseTask):
             self.running_epoch += 1
         test_scores = self.evaluate_metrics(self.test_dataloader)
         print(f"Evaluation on test set: {test_scores}")
-        
-    def lambda_lr(self, step):
-        warm_up = self.warmup
-        step += 1
-        return (self.model.latent_dim ** -.5) * min(step ** -.5, step * warm_up ** -1.5)
 
     def train(self):
         self.model.to(self.device)
@@ -131,30 +103,16 @@ class TrainingMultiRegressTask(BaseTask):
                 for key, value in items.items():
                     if isinstance(value, torch.Tensor):
                         items[key] = value.to(self.device)
-                out = self.model(items['input_ids'], items['attention_mask'])
+                outs = self.model(items['input_ids'],
+                                  items['attention_mask'])
                 
                 # Apply sigmoid to the predictions
-                for k, v in out.items():
-                    out[k] = f.sigmoid(v)
+                outs = f.sigmoid(outs)
                 
                 self.optimizer.zero_grad()
                 
-                loss = 0
-                empathy_loss = self.empathy_loss(out['empathy_output'],
-                                                 items['empathy'])
-                sentiment_loss = self.sentiment_loss(out['sentiment_output'],
-                                                     items['sentiment'])
-                losses = [empathy_loss, sentiment_loss]
-                
-                if not self.config.MODEL.FREEZE_BACKBONE:
-                    weights = self.get_task_weights(
-                        losses=losses
-                        )
-                    loss = sum(w * l for w, l in zip(weights, losses))
-                
-                else:
-                    for l_ in losses:
-                        loss += l_
+                loss = self.sentiment_loss(outs,
+                                           items['sentiment'])
                 
                 loss.backward()
 
@@ -177,17 +135,13 @@ class TrainingMultiRegressTask(BaseTask):
                         items[key] = value.to(self.device)
                     
                 with torch.no_grad():
-                    out = self.model(items['input_ids'],
-                                     items['attention_mask'])
+                    outs = self.model(items['input_ids'],
+                                      items['attention_mask'])
                 # Apply sigmoid to the predictions
-                for k, v in out.items():
-                    out[k] = f.sigmoid(v)
-                empathy_loss = self.empathy_loss(out['empathy_output'],
-                                                 items['empathy'])
-                sentiment_loss = self.sentiment_loss(out['sentiment_output'],
-                                                     items['sentiment'])
+                outs = f.sigmoid(outs)
                 
-                loss = empathy_loss + sentiment_loss
+                loss = self.sentiment_loss(outs,
+                                           items['sentiment'])
 
                 this_loss = loss.item()
                 running_loss += this_loss
@@ -197,8 +151,7 @@ class TrainingMultiRegressTask(BaseTask):
         logger.info('Dev Loss: %s', running_loss / len(self.dev_dataloader))
 
     def evaluate_metrics(self, dataloader):
-        empathy_gts, sentiment_gts = [], []
-        empathy_gens, sentiment_gens = [], []
+        sentiment_gts, sentiment_gens = [], []
         
         self.model.eval()
         with tqdm(desc='Epoch %d - Evaluation' % self.running_epoch, unit='it', total=len(dataloader)) as pbar:
@@ -210,25 +163,21 @@ class TrainingMultiRegressTask(BaseTask):
                     outs = self.model(items['input_ids'],
                                       items['attention_mask'])
                 
-                for k, v in outs.items():
-                    outs[k] = f.sigmoid(v)
-                empathy_gens.append(outs['empathy_output'])
-                sentiment_gens.append(outs['sentiment_output'])
+                outs = f.sigmoid(outs)
+
+                sentiment_gens.append(outs)
                 
-                empathy_gts.append(items['empathy'])
                 sentiment_gts.append(items['sentiment'])              
                 
                 pbar.update()
         sentiment_gts = torch.stack(sentiment_gts)
         sentiment_gens = torch.stack(sentiment_gens)
-        empathy_gts = torch.stack(empathy_gts)
-        empathy_gens = torch.stack(empathy_gens)
-        
+
         sentiment_mse = mean_squared_error(sentiment_gens, sentiment_gts)
-        empathy_mse = mean_squared_error(empathy_gens, empathy_gts)
+
         scores = {
             'sentiment_mse': sentiment_mse,
-            'empathy_mse': empathy_mse
+
         }
 
         print(scores)

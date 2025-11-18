@@ -7,7 +7,7 @@ TRAINING:
     BATCH_SIZE: 32
     WARMUP: 1738
     PATIENCE: 5
-    SCORE: [sentiment_mse, empathy_mse]
+    SCORE: sentiment_mse
     CHECKPOINT_PATH: /content/drive/MyDrive/demo1/checkpoints/EmpathySent/checkpoints_0
     DATA_PATH:
         TRAIN: /content/drive/MyDrive/demo1/training_data/empaSent/train.csv
