@@ -17,6 +17,8 @@ class AngerToxicClassifyModel(nn.Module):
         else:
             self.distilbert = DistilBertModel(self.bert_config)
 
+        self.distilbert.resize_token_embeddings(119551)
+        
         if self.config.FREEZE_BACKBONE:
             self.freeze_distilbert_layers()
         
@@ -30,9 +32,9 @@ class AngerToxicClassifyModel(nn.Module):
         self.dropout = nn.Dropout(config.DROPOUT)
 
     def freeze_distilbert_layers(self, num_freeze=2):
-        # Freeze embeddings
-        for param in self.distilbert.embeddings.parameters():
-            param.requires_grad = False
+        # # Freeze embeddings
+        # for param in self.distilbert.embeddings.parameters():
+        #     param.requires_grad = False
 
         # Freeze first N transformer layers
         for i in range(num_freeze):
